@@ -2,7 +2,7 @@
 #### Bootstrap cookbook-lab-droplet
 - name: Bootstrap cookbook-lab-droplet
   hosts: "{{ lookup('ansible.builtin.env', 'DO_DROPLET_NAME') }}"
-  gather_facts: false
+  gather_facts: true
   tasks:
     - name: Wait for connection to cookbook-lab-droplet
       ansible.builtin.wait_for_connection:
@@ -27,6 +27,8 @@
           - python3-setuptools
           - apache2-utils
           - git
+          - curl
+          - gnupg
           # - bpfcc-tools
           # - linux-headers-$(uname -r)
         state: latest
@@ -37,26 +39,60 @@
       register: apt_install
       until: apt_install is succeeded
 
-    - name: Download Docker
-      ansible.builtin.get_url:
-        url: https://get.docker.com
-        dest: /tmp/get-docker.sh
+    - name: Create Keyrings directory
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
         mode: "0755"
 
-    - name: Install Docker
-      ansible.builtin.command: bash -c /tmp/get-docker.sh
-      register: docker_install
-      retries: 3
-      delay: 10
-      changed_when: docker_install.rc != 0
+    - name: Download Docker GPG key
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: "0644"
+        force: true
 
-    - name: Install Python packages
-      ansible.builtin.pip:
-        name:
-          - docker
+    - name: Set permissions on keyring
+      ansible.builtin.file:
+        path: /etc/apt/keyrings/docker.asc
+        mode: '0644'
+
+    - name: Add Docker APT Repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+        filename: docker
+        update_cache: true
+
+    - name: Create Docker config directory
+      ansible.builtin.file:
+        path: /etc/docker
+        state: directory
+        mode: "0755"
+
+    - name: Create Docker to use overlay2 storage driver
+      ansible.builtin.copy:
+        dest: /etc/docker/daemon.json
+        content: |
+         {
+           "storage-driver": "overlay2"
+         }
+        mode: "0644"  
+  
+    - name: Install docker and python docker module
+      ansible.builtin.apt:
+        pkg:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - python3-docker
         state: latest
       tags:
         - skip_ansible_lint
+      retries: 3
+      delay: 10
+      register: apt_install
+      until: apt_install is succeeded
 
     - name: Download Miniconda python environment
       ansible.builtin.get_url:

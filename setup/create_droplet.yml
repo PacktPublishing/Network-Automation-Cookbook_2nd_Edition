@@ -9,7 +9,7 @@
     - name: "droplet_image"
       prompt: "Enter the droplet image"
       private: false
-      default: "ubuntu-22-04-x64"
+      default: "ubuntu-24-04-x64"
 
     - name: "droplet_size"
       prompt: "Enter the droplet size"

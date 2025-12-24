@@ -55,6 +55,23 @@ To install the `lab` tool on your local machine, follow these steps:
 pip install .
 ```
 
+### 3a. Install Ansible Core and Ansible
+
+```bash
+# Install Ansible Core
+pip install ansible-core
+
+# Install Ansible
+pip install ansible
+```
+
+### 3b. Install Ansible Digital Colection
+
+```bash
+# Install Digital Ocent Ansible Collection
+ansible-galaxy collection install community.digitalocean
+```
+
 ### 4. Setup environment files
 
 The setup of the lab environment relies on variables specified in the `.env` and `.setup.env` files. We provide skeleton files that you can reference to set up the environment. Begin by copying these example files:
